@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AnimaxStore
+
+An e-commerce platform for anime and manga merchandise.
+
+Built with Next.js, TypeScript, Tailwind CSS, and Prisma.
+
+---
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command         | Description          |
+| --------------- | -------------------- |
+| `npm run dev`   | Start dev server     |
+| `npm run build` | Production build     |
+| `npm run start` | Start production     |
+| `npm run lint`  | Run ESLint           |
+| `npm run typecheck` | Run TypeScript check |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/              # Next.js App Router pages
+│   ├── (marketing)/  # Marketing pages (home, about)
+│   ├── (store)/      # Store pages (products, cart, checkout)
+│   ├── (auth)/       # Auth pages (login, register)
+│   ├── account/      # User account pages
+│   ├── admin/        # Admin panel
+│   └── api/          # Route handlers
+├── features/         # Feature modules
+│   ├── products/     # Product catalog feature
+│   ├── cart/         # Shopping cart feature
+│   ├── checkout/     # Checkout feature
+│   ├── orders/       # Orders feature
+│   └── auth/         # Authentication feature
+├── shared/           # Reusable code
+│   ├── ui/           # UI components
+│   ├── api/          # API client
+│   ├── lib/          # Utilities
+│   ├── hooks/        # Shared hooks
+│   ├── types/        # Shared types
+│   └── config/       # Configuration
+└── providers/        # React providers
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript (strict)
+- **Styling:** Tailwind CSS v4
+- **Database:** PostgreSQL + Prisma
+- **Auth:** NextAuth.js
+- **State:** TanStack Query
+
+For detailed stack documentation, see `.ai/project/stack.md`.
+
+---
+
+## Architecture
+
+This project follows feature-driven architecture with clean separation of concerns. Each business capability is a self-contained feature module.
+
+For full architecture documentation, see `.ai/project/architecture.md`.
