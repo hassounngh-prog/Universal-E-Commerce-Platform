@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AnimaxStore
 
 An e-commerce platform for anime and manga merchandise.
