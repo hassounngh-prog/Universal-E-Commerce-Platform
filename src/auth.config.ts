@@ -3,7 +3,10 @@ import type { JWT } from "next-auth/jwt";
 
 export const authConfig = {
   providers: [],
-  session: { strategy: "jwt" } as const,
+  session: {
+    strategy: "jwt" as const,
+    maxAge: 7 * 24 * 60 * 60,
+  },
   pages: {
     signIn: "/login",
     newUser: "/register",

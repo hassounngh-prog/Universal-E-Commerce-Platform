@@ -10,14 +10,11 @@ This document records all known issues that affect the project.
 
 ## Critical (Unresolved)
 
-- **Secrets committed to git** — `.env` and `.env.local` contain `AUTH_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and database password in plaintext. Must rotate credentials and remove from tracking before any deployment.
-- **Supabase Service Role exposed** — Full-admin credential committed in `.env.local`. Bypasses all Row-Level Security.
+None — previously reported C1/C2 (secrets committed to git) refuted by freeze audit 2026-07-31; see Resolved section.
 
 ## High (Unresolved)
 
-- No security headers (CSP, HSTS, X-Frame-Options) configured in `next.config.ts`
 - No rate limiting on auth endpoints — brute force possible
-- No session TTL / maxAge configured — JWT tokens valid for 30 days by default
 - No signIn callback for pre-auth checks (email verification, ban status)
 - No brute-force protection on password comparison
 - No production-ready build configuration in `next.config.ts`
@@ -34,7 +31,6 @@ This document records all known issues that affect the project.
 - Key fields missing from address models (phone, email)
 - No email verification flow designed
 - No guest cart merge strategy documented
-- No ESLint boundary enforcement (`import/no-restricted-paths`)
 - `next-env.d.ts` not in `.prettierignore`
 - No test configuration or test baseline
 
@@ -57,6 +53,10 @@ Full findings with scores and remediation in `.ai/reviews/final-architecture-rev
 
 # Resolved
 
+- **Security headers (P0, freeze audit)** — CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy added in `next.config.ts` (2026-07-31)
+- **JWT session TTL (P0, freeze audit)** — `maxAge: 7 days` set in `src/auth.config.ts` (2026-07-31)
+- **ESLint boundary enforcement (P3, freeze audit)** — `import/no-restricted-paths` zones added in `eslint.config.mjs` covering core/infrastructure/features/plugins/app/config/shared layers (2026-07-31)
+- **Secrets committed to git (C1/C2, audit 2026-07-30)** — **Refuted by evidence**: `git ls-tree -r --name-only` across all 4 commits (33e4e37, 54f2b1a, 80dcd31, d5c46ce) shows zero `.env*` files ever committed; `.gitignore` covers `.env*`. Credentials exist only as untracked local files. Residual: rotate keys as hygiene (may have circulated via `AnimaxStore.zip`). See `.ai/reviews/freeze-audit-2026-07-31.md` §1 (2026-07-31)
 - **Plugin architecture** — Specified in `.ai/specs/plugin-system.md` (2026-07-30)
 - **DI container approach** — Documented in `.ai/project/dependency-injection.md` — Manual DI with Container Registry (2026-07-30)
 - **Multi-tenancy isolation strategy** — Documented in ADR-009, `.ai/project/decisions.md` (2026-07-30)

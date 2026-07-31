@@ -4,7 +4,7 @@
 
 # Last Updated
 
-Date: 2026-07-30
+Date: 2026-07-31
 
 Updated By: AI Agent
 
@@ -12,28 +12,33 @@ Updated By: AI Agent
 
 # Current Phase
 
-Architecture Transformation — transitioning from anime-specific store to universal e-commerce platform.
+Phase 0 — Foundation Scaffolding (post-freeze). Architecture is **FROZEN** as of 2026-07-31.
 
 ---
 
 # Current Priorities
 
-0. **Resolve P0 review conditions** — Rotate credentials, add security headers, document known issues
 1. Create platform layer directories (`src/core/`, `src/infrastructure/`, `src/plugins/`, `src/config/`)
 2. Define Core provider interfaces (payment, storage, search, shipping, tax, notification)
-3. Extend database schema for universal commerce (additive, non-breaking)
-4. Maintain existing feature module structure as tenant-aware wrappers
+3. Build plugin registry (`src/plugins/plugin-registry.ts`)
+4. Extend database schema for universal commerce (additive, non-breaking)
+5. Maintain existing feature module structure as tenant-aware wrappers
 
 ---
 
 # Current Focus
 
-Architecture review 82/100 — APPROVED WITH CHANGES. All 5 conditions met: plugin system designed, DI container decided, ADR-009 documented, known-issues populated. Ready for Phase 0 implementation.
+Architecture **FROZEN** (2026-07-31). Phase 0 foundation work in progress: layer dirs + provider interfaces + plugin registry + config created. Freeze audit delivered `.ai/reviews/freeze-audit-2026-07-31.md` — CONDITIONAL APPROVE; all conditions resolved (security headers + JWT session TTL P0, ESLint boundaries, stale refs, C1/C2 refuted). Build/lint/typecheck all pass. Per directive: **no new architecture documents** unless implementation reveals a concrete design flaw.
 
 ---
 
 # Recently Completed
 
+- **Phase 0 code (in progress)**: `src/core/` dirs + plugin contracts (types, plugin-context, hook-registry, event-bus), six provider interfaces (payment/storage/search/shipping/tax/notification), `src/plugins/plugin-registry.ts` + `manifest-registry.ts`, `src/config/{platform,tenant}.config.ts`, `src/shared/{types,errors,utils}/` base files, `src/infrastructure/*` placeholder dirs
+- Freeze audit (`.ai/reviews/freeze-audit-2026-07-31.md`) — CONDITIONAL APPROVE; C1/C2 refuted
+- **ARCHITECTURE FROZEN** (2026-07-31) — no new architecture docs unless implementation reveals a flaw
+- P0 fixes applied: security headers (`next.config.ts`), JWT session TTL 7d (`auth.config.ts`), ESLint `import/no-restricted-paths` layer zones (`eslint.config.mjs`)
+- Stale references fixed: decisions-history ADR-001/ADR-003, layout branding → CommerceCore, package.json name/version (commercecore@0.3.0), package-lock.json, seed.ts domain-neutral categories
 - Initial architecture audit (28 findings, 2 critical, 8 high)
 - Final architecture review (82/100, APPROVED WITH CHANGES, `.ai/reviews/final-architecture-review.md`)
 - Plugin System specification (lifecycle, manifest, hooks, events, permissions — `.ai/specs/plugin-system.md`)
@@ -64,25 +69,26 @@ None
 
 # Upcoming Work
 
-1. Create `src/core/` directory with provider interface definitions
-2. Create `src/infrastructure/` directory with first provider implementations
-3. Create `src/plugins/` directory with plugin registry pattern
-4. Create `src/config/` directory with platform configuration
-5. Extend database schema additively (brands, attributes, variants, collections, coupons, etc.)
-6. Update seed script for new schema
-7. Migrate existing feature modules to use Core layer
+1. Build `src/plugins/` plugin registry runtime (event bus + hook registry impls) if not yet complete
+2. First provider implementations in `src/infrastructure/` (stripe, supabase-storage, etc.)
+3. Extend database schema additively (brands, attributes, variants, collections, coupons, etc.)
+4. Update seed script for new schema
+5. Migrate existing feature modules to use Core layer
+6. Address `npm audit` findings (defer vs. `npm audit fix`)
 
 ---
 
 # Known Issues
 
-- `.env` and `.env.local` contain committed secrets — credentials must be rotated and files removed from git
+- Secrets never committed to git (verified 2026-07-31) — rotate keys as hygiene only; see `.ai/reviews/freeze-audit-2026-07-31.md`
+- No rate limiting on auth endpoints — brute force possible (carry-over, not freeze-blocking)
+- No observability/deployment strategy docs — no new architecture docs per freeze directive; revisit if implementation requires
 - Supabase RLS disabled on all tables (expected during development; enable before production)
 - `node:path` and `node:url` Edge Runtime warnings from Prisma generated client
 - Database schema tied to physical goods model — needs additive extension for universal support
-- No provider abstractions defined yet — direct Supabase references need interface extraction
 - No multi-tenant support — tenant model and configuration system needed
 - No internationalization — i18n infrastructure needed
+- `npm audit` reports dependency advisories (not yet triaged)
 
 ---
 
@@ -98,10 +104,10 @@ None accumulated yet (greenfield). Architectural debt will emerge if universal p
 |---------------------|-------------|-----------------------------------------|
 | Documentation        | Complete    | Architecture updated for universal platform |
 | Scaffolding          | Complete    | Next.js + tooling set up                |
-| Layer Structure      | Designed    | Dirs need creation                      |
+| Layer Structure      | Complete    | Dirs + core contracts + registry + config  |
 | Database Schema      | Partial     | Physical goods only — needs extension   |
 | Authentication       | Complete    | NextAuth.js v5 + credentials provider   |
-| Core Interfaces      | Planned     | Payment, storage, search, shipping, tax |
+| Core Interfaces      | In Progress | Interfaces defined; implementations next |
 | Product Catalog      | Planned     | Needs attribute system                  |
 | Cart                 | Planned     | Needs guest merge strategy              |
 | Checkout             | Planned     | Needs provider pipeline                 |
@@ -139,4 +145,4 @@ Production: Not Deployed
 
 # Notes for Next Session
 
-Next session should create the physical layer directories and begin defining Core provider interfaces. The existing feature modules remain in place as wrappers that will later use the Core layer. No schema changes should be applied until the extension design is finalized.
+Phase 0 foundation scaffolding is largely complete (layer dirs, provider interfaces, plugin registry + manifest registry, platform/tenant config, shared base files). Next: first provider implementations in `src/infrastructure/`, then additive schema extension. `npm audit` findings still need a defer-vs-fix decision. Existing feature modules remain in place as wrappers that will later use the Core layer. No schema changes should be applied until the extension design is finalized.

@@ -17,9 +17,9 @@ All architecturally significant decisions have been recorded as ADRs in `ai/proj
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| ADR-001 | Next.js 14 App Router with mixed rendering | Accepted |
-| ADR-002 | PostgreSQL via Supabase | Accepted |
-| ADR-003 | Next.js API Routes for backend architecture | Accepted |
+| ADR-001 | Adopt Next.js App Router with Feature-Driven Architecture | Implemented |
+| ADR-002 | PostgreSQL with Prisma ORM | Implemented |
+| ADR-003 | Co-located API Routes with Next.js Route Handlers | Accepted |
 | ADR-004 | Auth.js for authentication | Accepted |
 | ADR-005 | proxy.ts as middleware strategy | Accepted |
 | ADR-006 | Universal E-Commerce Platform architecture | Accepted |

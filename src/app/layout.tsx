@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AnimaxStore — Anime Merchandise",
+  title: "CommerceCore",
   description:
-    "Discover and shop anime merchandise. Figures, apparel, accessories, and more.",
+    "A universal, business-agnostic e-commerce platform for multi-tenant commerce.",
 };
 
 export default function RootLayout({

@@ -15,11 +15,11 @@ async function main() {
   }
 
   const categories = [
-    { name: "Figures", slug: "figures", description: "Anime figures and statues" },
+    { name: "Featured", slug: "featured", description: "Curated and promoted products" },
     { name: "Apparel", slug: "apparel", description: "Clothing and accessories" },
-    { name: "Posters", slug: "posters", description: "Wall scrolls and posters" },
-    { name: "Plushies", slug: "plushies", description: "Plush toys and keychains" },
-    { name: "Accessories", slug: "accessories", description: "Bags, wallets, and more" },
+    { name: "Collectibles", slug: "collectibles", description: "Figures, statues, and display items" },
+    { name: "Home", slug: "home", description: "Homeware, decor, and lifestyle goods" },
+    { name: "Outdoors", slug: "outdoors", description: "Outdoor gear and adventure essentials" },
   ];
 
   for (const cat of categories) {
