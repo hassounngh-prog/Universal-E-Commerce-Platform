@@ -1,3 +1,5 @@
+import type { CouponInput } from "@/core/pricing/types";
+
 export interface CartItem {
   id: string;
   cartId: string;
@@ -27,4 +29,12 @@ export interface AddCartItemInput {
   productId: string;
   variantId?: string | null;
   quantity: number;
+}
+
+export interface PriceCartInput {
+  currency: string;
+  coupon?: CouponInput | null;
+  shippingCost?: number;
+  taxRate?: number;
+  taxRates?: Record<string, number>;
 }
