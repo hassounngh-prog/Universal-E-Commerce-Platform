@@ -707,3 +707,13 @@ model OrderAddress {
   postalCode String
   country    String @default("US")
 }
+
+model SearchDocument {
+  id        String   @id
+  index     String
+  fields    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([index])
+}

@@ -26,6 +26,7 @@ All architecturally significant decisions have been recorded as ADRs in `ai/proj
 | ADR-007 | Provider Interface pattern | Accepted |
 | ADR-008 | EAV with JSONB hybrid for product attributes | Accepted |
 | ADR-009 | Multi-Tenancy: Shared Database with Tenant ID Isolation | Accepted |
+| ADR-010 | `src/config/` is the Dependency Composition Root | Implemented |
 
 ---
 

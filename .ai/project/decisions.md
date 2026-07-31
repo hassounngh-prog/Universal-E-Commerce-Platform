@@ -662,3 +662,42 @@ export async function proxy(request: NextRequest): Promise<NextResponse | undefi
 - `.ai/project/dependency-injection.md` — Per-tenant container pattern
 - `.ai/specs/plugin-system.md` — Per-tenant plugin enablement
 - `.ai/project/architecture.md` — Business Configuration layer definition
+
+---
+
+## ADR-010
+
+### Title
+
+`src/config/` is the Dependency Composition Root
+
+### Status
+
+Implemented
+
+### Date
+
+2026-07-31
+
+### Context
+
+The approved DI specification (`project/dependency-injection.md`) places the container registry and composition root at `src/config/container-registry.ts` and `src/config/container.ts`. The container imports Core interfaces (for type safety) and Infrastructure implementations (provider factories), and reads provider settings from configuration.
+
+The Phase 0 architecture boundary in `eslint.config.mjs` declared `src/config` as a pure configuration layer that "may only depend on `src/shared`". Implementation of Phase 2 (provider implementations + DI wiring) surfaced a conflict between two approved artifacts: the container as designed cannot exist under the existing boundary, and no other layer is permitted to depend on both `src/config` and `src/infrastructure`.
+
+### Decision
+
+Treat `src/config/` as the **dependency composition root**. Relax the `src/config` boundary so it may depend on `src/core` (type-only interface imports) and `src/infrastructure` (provider implementations). The boundary remains: `src/config` must NOT import from `src/features`, `src/app`, or `src/plugins`.
+
+The pure, dependency-free `Container` registry class stays in `src/config/container-registry.ts`. All provider selection remains configuration-driven: `src/config/container.ts` reads `providerConfig` and resolves the matching implementation; changing a provider is a config change, not a code change.
+
+### Alternatives
+
+- **Place the container in `src/infrastructure/`** — rejected because Infrastructure is a leaf layer that must not know about configuration, and the approved DI doc specifies `src/config`.
+- **Place the composition root in `src/features/`** — rejected because features are presentation modules and must not own global wiring.
+
+### Consequences
+
+Positive: Matches the approved DI specification. Provider selection stays config-driven. Core remains implementation-agnostic. Infrastructure remains unaware of configuration.
+
+Negative: `src/config` is no longer a purely declarative layer; it is now the composition root and must be kept free of business logic.

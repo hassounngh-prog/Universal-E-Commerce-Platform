@@ -46,8 +46,8 @@ const architectureBoundaries = {
           },
           {
             target: "./src/config",
-            from: ["./src/core", "./src/infrastructure", "./src/features", "./src/app", "./src/plugins"],
-            message: "src/config may only depend on src/shared.",
+            from: ["./src/features", "./src/app", "./src/plugins"],
+            message: "src/config is the dependency composition root (ADR-010); it may depend on src/shared, src/core interfaces, and src/infrastructure implementations only.",
           },
           {
             target: "./src/shared",
