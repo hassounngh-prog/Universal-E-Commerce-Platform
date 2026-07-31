@@ -205,13 +205,14 @@ describe("PrismaProductRepository", () => {
         dimensions: { w: 10 },
         metadata: Prisma.JsonNull,
       }),
+      include: expect.objectContaining({ values: true }),
     });
   });
 
-  it("creates a product with nested attribute values", async () => {
+  it("persists nested attribute values and returns them on create", async () => {
     mocks.mockCreate.mockResolvedValue(fullRow);
 
-    await repo.create("t1", {
+    const product = await repo.create("t1", {
       name: "Anime Figurine",
       slug: "anime-figurine",
       description: "Collectible",
@@ -226,7 +227,11 @@ describe("PrismaProductRepository", () => {
           create: [{ attributeId: "a1", value: "red" }],
         },
       }),
+      include: expect.objectContaining({ values: true }),
     });
+    expect(product.attributeValues).toEqual([
+      { id: "av1", productId: "p1", attributeId: "a1", value: "red" },
+    ]);
   });
 
   it("maps a Prisma unique violation to ConflictError on create", async () => {

@@ -234,6 +234,7 @@ export class PrismaProductRepository implements ProductRepository {
     try {
       const row = (await prisma.product.create({
         data: toPrismaCreate(tenantId, input),
+        include: PRODUCT_INCLUDE,
       })) as ProductWithRelations;
       return toDomain(row);
     } catch (error) {
