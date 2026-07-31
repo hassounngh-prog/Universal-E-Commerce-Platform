@@ -58,6 +58,17 @@ export interface Product {
   attributeValues: ProductAttributeValue[];
 }
 
+export interface ProductAttributeValueInput {
+  attributeId: string;
+  value: unknown;
+}
+
+export interface AttributeFilter {
+  attributeId?: string;
+  attributeSlug?: string;
+  value: unknown;
+}
+
 export interface CreateProductInput {
   name: string;
   slug: string;
@@ -78,6 +89,7 @@ export interface CreateProductInput {
   isFeatured?: boolean;
   tags?: string[];
   metadata?: Record<string, unknown> | null;
+  attributeValues?: ProductAttributeValueInput[];
 }
 
 export interface UpdateProductInput {
@@ -112,6 +124,7 @@ export interface ProductListFilter {
   minPrice?: number;
   maxPrice?: number;
   search?: string;
+  attributeFilters?: AttributeFilter[];
   page?: number;
   pageSize?: number;
 }

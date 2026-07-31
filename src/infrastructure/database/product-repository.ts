@@ -1,10 +1,11 @@
 import { Prisma, prisma } from "@/shared/lib/prisma";
-import { NotFoundError } from "@/shared/errors/platform-error";
-import { toJson, toRecord } from "@/shared/lib/json";
+import { ConflictError, NotFoundError } from "@/shared/errors/platform-error";
+import { toJson, toJsonValue, toRecord } from "@/shared/lib/json";
 import type { ProductRepository } from "@/core/product/product-repository.interface";
 import type {
   CreateProductInput,
   Product,
+  ProductAttributeValueInput,
   ProductListFilter,
   ProductListResult,
   UpdateProductInput,
@@ -30,6 +31,14 @@ const PRODUCT_INCLUDE = {
 
 function tenantScope(tenantId: string | null): { tenantId: string } | Record<string, never> {
   return tenantId ? { tenantId } : {};
+}
+
+function isPrismaUniqueConstraintError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 function toDomain(row: ProductWithRelations): Product {
@@ -113,6 +122,16 @@ function toPrismaCreate(
     isFeatured: input.isFeatured ?? false,
     tags: input.tags ?? [],
     metadata: toJson(input.metadata),
+    ...(input.attributeValues && input.attributeValues.length > 0
+      ? {
+          values: {
+            create: input.attributeValues.map((value) => ({
+              attributeId: value.attributeId,
+              value: toJsonValue(value.value),
+            })),
+          },
+        }
+      : {}),
   };
 }
 
@@ -156,6 +175,19 @@ function toWhere(filter: ProductListFilter): Prisma.ProductWhereInput {
       ...(filter.maxPrice !== undefined ? { lte: filter.maxPrice } : {}),
     };
   }
+  if (filter.attributeFilters && filter.attributeFilters.length > 0) {
+    where.AND = filter.attributeFilters.map((attributeFilter) => ({
+      values: {
+        some: {
+          ...(attributeFilter.attributeId ? { attributeId: attributeFilter.attributeId } : {}),
+          ...(attributeFilter.attributeSlug
+            ? { attribute: { slug: attributeFilter.attributeSlug } }
+            : {}),
+          value: { equals: attributeFilter.value as Prisma.InputJsonValue },
+        },
+      },
+    }));
+  }
   return where;
 }
 
@@ -186,6 +218,7 @@ export class PrismaProductRepository implements ProductRepository {
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
+        include: PRODUCT_INCLUDE,
       }),
       prisma.product.count({ where }),
     ]);
@@ -198,19 +231,33 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async create(tenantId: string | null, input: CreateProductInput): Promise<Product> {
-    const row = (await prisma.product.create({
-      data: toPrismaCreate(tenantId, input),
-    })) as ProductWithRelations;
-    return toDomain(row);
+    try {
+      const row = (await prisma.product.create({
+        data: toPrismaCreate(tenantId, input),
+      })) as ProductWithRelations;
+      return toDomain(row);
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictError(`Product with the same slug or sku already exists`);
+      }
+      throw error;
+    }
   }
 
   async update(tenantId: string | null, id: string, input: UpdateProductInput): Promise<Product> {
-    const result = await prisma.product.updateMany({
-      where: { id, ...tenantScope(tenantId) },
-      data: toPrismaUpdate(input),
-    });
-    if (result.count === 0) {
-      throw new NotFoundError(`Product ${id} not found`);
+    try {
+      const result = await prisma.product.updateMany({
+        where: { id, ...tenantScope(tenantId) },
+        data: toPrismaUpdate(input),
+      });
+      if (result.count === 0) {
+        throw new NotFoundError(`Product ${id} not found`);
+      }
+    } catch (error) {
+      if (isPrismaUniqueConstraintError(error)) {
+        throw new ConflictError(`Product with the same slug or sku already exists`);
+      }
+      throw error;
     }
     const row = (await prisma.product.findFirst({
       where: { id, ...tenantScope(tenantId) },
@@ -239,5 +286,40 @@ export class PrismaProductRepository implements ProductRepository {
     if (result.count === 0) {
       throw new NotFoundError(`Product ${id} not found`);
     }
+  }
+
+  async setAttributeValues(
+    tenantId: string | null,
+    id: string,
+    values: ProductAttributeValueInput[],
+  ): Promise<Product> {
+    return prisma.$transaction(async (tx) => {
+      const product = await tx.product.findFirst({
+        where: { id, ...tenantScope(tenantId) },
+        select: { id: true },
+      });
+      if (!product) {
+        throw new NotFoundError(`Product ${id} not found`);
+      }
+      await tx.productAttributeValue.deleteMany({ where: { productId: id } });
+      if (values.length > 0) {
+        await tx.productAttributeValue.createMany({
+          data: values.map((value) => ({
+            productId: id,
+            attributeId: value.attributeId,
+            value: toJsonValue(value.value),
+          })),
+          skipDuplicates: true,
+        });
+      }
+      const row = (await tx.product.findFirst({
+        where: { id, ...tenantScope(tenantId) },
+        include: PRODUCT_INCLUDE,
+      })) as ProductWithRelations | null;
+      if (!row) {
+        throw new NotFoundError(`Product ${id} not found`);
+      }
+      return toDomain(row);
+    });
   }
 }

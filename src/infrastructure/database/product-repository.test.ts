@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { PrismaProductRepository } from "./product-repository";
-import { NotFoundError } from "@/shared/errors/platform-error";
+import { ConflictError, NotFoundError } from "@/shared/errors/platform-error";
 import { Prisma } from "@/generated/prisma/client";
 
 const mocks = vi.hoisted(() => ({
@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
   mockCreate: vi.fn(),
   mockUpdateMany: vi.fn(),
   mockDeleteMany: vi.fn(),
+  mockTransaction: vi.fn(),
+  mockTxProductFindFirst: vi.fn(),
+  mockTxDeleteAttributeValues: vi.fn(),
+  mockTxCreateAttributeValues: vi.fn(),
 }));
 
 vi.mock("@/shared/lib/prisma", () => ({
@@ -22,6 +26,7 @@ vi.mock("@/shared/lib/prisma", () => ({
       updateMany: mocks.mockUpdateMany,
       deleteMany: mocks.mockDeleteMany,
     },
+    $transaction: mocks.mockTransaction,
   },
   Prisma: {},
 }));
@@ -152,7 +157,32 @@ describe("PrismaProductRepository", () => {
       orderBy: { createdAt: "desc" },
       skip: 10,
       take: 10,
+      include: expect.any(Object),
     });
+  });
+
+  it("filters by dynamic attribute values using AND semantics", async () => {
+    mocks.mockFindMany.mockResolvedValue([row]);
+    mocks.mockCount.mockResolvedValue(1);
+
+    await repo.list({
+      tenantId: "t1",
+      attributeFilters: [
+        { attributeId: "a1", value: "red" },
+        { attributeSlug: "material", value: "cotton" },
+      ],
+    });
+
+    expect(mocks.mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            { values: { some: { attributeId: "a1", value: { equals: "red" } } } },
+            { values: { some: { attribute: { slug: "material" }, value: { equals: "cotton" } } } },
+          ],
+        }),
+      }),
+    );
   });
 
   it("creates a product serializing JSON fields", async () => {
@@ -178,6 +208,47 @@ describe("PrismaProductRepository", () => {
     });
   });
 
+  it("creates a product with nested attribute values", async () => {
+    mocks.mockCreate.mockResolvedValue(fullRow);
+
+    await repo.create("t1", {
+      name: "Anime Figurine",
+      slug: "anime-figurine",
+      description: "Collectible",
+      sku: "FIG-1",
+      price: 2999,
+      attributeValues: [{ attributeId: "a1", value: "red" }],
+    });
+
+    expect(mocks.mockCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        values: {
+          create: [{ attributeId: "a1", value: "red" }],
+        },
+      }),
+    });
+  });
+
+  it("maps a Prisma unique violation to ConflictError on create", async () => {
+    mocks.mockCreate.mockRejectedValue({ code: "P2002", message: "Unique constraint failed" });
+
+    await expect(
+      repo.create("t1", {
+        name: "Anime Figurine",
+        slug: "anime-figurine",
+        description: "Collectible",
+        sku: "FIG-1",
+        price: 2999,
+      }),
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it("maps a Prisma unique violation to ConflictError on update", async () => {
+    mocks.mockUpdateMany.mockRejectedValue({ code: "P2002", message: "Unique constraint failed" });
+
+    await expect(repo.update("t1", "p1", { slug: "taken-slug" })).rejects.toThrow(ConflictError);
+  });
+
   it("throws NotFoundError when updating a missing product", async () => {
     mocks.mockUpdateMany.mockResolvedValue({ count: 0 });
 
@@ -193,5 +264,59 @@ describe("PrismaProductRepository", () => {
       where: { id: "p1", tenantId: "t1" },
       data: { stock: { increment: -2 } },
     });
+  });
+
+  it("replaces attribute values atomically within a transaction", async () => {
+    const tx = {
+      product: { findFirst: mocks.mockTxProductFindFirst },
+      productAttributeValue: {
+        deleteMany: mocks.mockTxDeleteAttributeValues,
+        createMany: mocks.mockTxCreateAttributeValues,
+      },
+    };
+    mocks.mockTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback(tx),
+    );
+    mocks.mockTxProductFindFirst
+      .mockResolvedValueOnce({ id: "p1" })
+      .mockResolvedValueOnce(fullRow);
+    mocks.mockTxDeleteAttributeValues.mockResolvedValue({ count: 1 });
+    mocks.mockTxCreateAttributeValues.mockResolvedValue({ count: 1 });
+
+    const product = await repo.setAttributeValues("t1", "p1", [
+      { attributeId: "a1", value: "red" },
+      { attributeId: "a2", value: 5 },
+    ]);
+
+    expect(mocks.mockTxProductFindFirst).toHaveBeenNthCalledWith(1, {
+      where: { id: "p1", tenantId: "t1" },
+      select: { id: true },
+    });
+    expect(mocks.mockTxDeleteAttributeValues).toHaveBeenCalledWith({ where: { productId: "p1" } });
+    expect(mocks.mockTxCreateAttributeValues).toHaveBeenCalledWith({
+      data: [
+        { productId: "p1", attributeId: "a1", value: "red" },
+        { productId: "p1", attributeId: "a2", value: 5 },
+      ],
+      skipDuplicates: true,
+    });
+    expect(product).toMatchObject({ id: "p1", attributeValues: [{ attributeId: "a1", value: "red" }] });
+  });
+
+  it("throws NotFoundError when setting attribute values on a missing product", async () => {
+    const tx = {
+      product: { findFirst: mocks.mockTxProductFindFirst },
+      productAttributeValue: {
+        deleteMany: mocks.mockTxDeleteAttributeValues,
+        createMany: mocks.mockTxCreateAttributeValues,
+      },
+    };
+    mocks.mockTransaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) =>
+      callback(tx),
+    );
+    mocks.mockTxProductFindFirst.mockResolvedValue(null);
+
+    await expect(repo.setAttributeValues("t1", "missing", [])).rejects.toThrow(NotFoundError);
+    expect(mocks.mockTxDeleteAttributeValues).not.toHaveBeenCalled();
   });
 });

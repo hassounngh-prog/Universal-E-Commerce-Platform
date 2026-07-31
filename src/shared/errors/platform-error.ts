@@ -30,6 +30,13 @@ export class ValidationError extends PlatformError {
   }
 }
 
+export class ConflictError extends PlatformError {
+  constructor(message: string, options: Omit<PlatformErrorOptions, "code"> = {}) {
+    super(message, { ...options, code: "conflict" });
+    this.name = "ConflictError";
+  }
+}
+
 export class PluginCancelledError extends PlatformError {
   constructor(message = "Operation cancelled by a plugin") {
     super(message, { code: "plugin_cancelled" });

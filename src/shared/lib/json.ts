@@ -10,6 +10,13 @@ export function toJson(
   return value as Prisma.InputJsonValue;
 }
 
+export function toJsonValue(
+  value: unknown,
+): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
+  if (value === undefined) return Prisma.JsonNull;
+  return value as Prisma.InputJsonValue;
+}
+
 export function toRecord(value: unknown): JsonRecord | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== "object" || Array.isArray(value)) return null;
