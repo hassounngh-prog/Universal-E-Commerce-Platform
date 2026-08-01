@@ -56,6 +56,11 @@ describe("container composition root", () => {
       shipping: "manual",
       notification: "console",
     });
+
+    const paymentService = container.resolve(KEYS.paymentService) as {
+      createPayment: unknown;
+    };
+    expect(typeof paymentService.createPayment).toBe("function");
   });
 
   it("returns singleton instances per key", async () => {

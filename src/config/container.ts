@@ -6,7 +6,9 @@ import { PostgresSearchProvider } from "@/infrastructure/search/postgres-search-
 import { PostgresTaxProvider } from "@/infrastructure/tax/postgres-tax-provider";
 import { ManualShippingProvider } from "@/infrastructure/shipping/manual-shipping-provider";
 import { ConsoleNotificationChannel } from "@/infrastructure/notification/console-notification-channel";
+import { DefaultPaymentService } from "@/core/payment/default-payment-service";
 import type { PaymentProvider } from "@/core/payment/payment-provider.interface";
+import type { PaymentService } from "@/core/payment/payment-service.interface";
 import type { StorageProvider } from "@/core/storage/storage-provider.interface";
 import type { SearchProvider } from "@/core/search/search-provider.interface";
 import type { TaxProvider } from "@/core/tax/tax-provider.interface";
@@ -15,6 +17,7 @@ import type { NotificationChannel } from "@/core/notification/notification-chann
 
 export const KEYS = {
   payment: "payment.provider",
+  paymentService: "payment.service",
   storage: "storage.provider",
   search: "search.provider",
   tax: "tax.provider",
@@ -31,6 +34,10 @@ container.register<PaymentProvider>(KEYS.payment, () => {
     default:
       throw new Error(`[Container] Unknown payment provider: ${providerConfig.payment.provider}`);
   }
+});
+
+container.register<PaymentService>(KEYS.paymentService, () => {
+  return new DefaultPaymentService(container.resolve<PaymentProvider>(KEYS.payment));
 });
 
 container.register<StorageProvider>(KEYS.storage, () => {
