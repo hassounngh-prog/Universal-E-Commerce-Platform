@@ -43,6 +43,17 @@ None — previously reported C1/C2 (secrets committed to git) refuted by freeze 
 - CUID IDs may cause index performance issues at scale
 - No `tsx` configured for seed script in package.json
 
+## Accepted Technical Debt (AAB Review 2026-07-31 — non-blocking)
+
+OrderService Phase 3.3 passed AAB review with 0 blockers. The following findings were rated ACCEPTABLE TECHNICAL DEBT or COSMETIC and accepted as-is:
+
+- **ACCEPTABLE TECHNICAL DEBT** — `OrderService.update()` bypasses the `TRANSITIONS` state machine for `status`/`paidAt`/`shippedAt`/`completedAt`/`cancelledAt` fields (direct assignment, no transition validation)
+- **ACCEPTABLE TECHNICAL DEBT** — Provider side-effects run before transition validation in OrderService payment/fulfillment methods (side-effect order vs. validation order)
+- **COSMETIC** — `resolveDimensions` casts JSONB to `Record<string, unknown>` without runtime validation
+- **COSMETIC** — OrderRepository lacks P2002 → ConflictError mapping (out of ADR-013 scope; mitigated by order-number pre-check + retry + ConflictError surface)
+
+Remediation (if pursued): extract a `CoreOrderService` enforcing transitions, and/or move validation before provider side-effects. Decision deferred — not blocking Phase 3.
+
 ---
 
 # Documented in Architecture Review

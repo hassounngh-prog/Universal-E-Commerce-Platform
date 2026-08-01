@@ -27,6 +27,9 @@ All architecturally significant decisions have been recorded as ADRs in `ai/proj
 | ADR-008 | EAV with JSONB hybrid for product attributes | Accepted |
 | ADR-009 | Multi-Tenancy: Shared Database with Tenant ID Isolation | Accepted |
 | ADR-010 | `src/config/` is the Dependency Composition Root | Implemented |
+| ADR-011 | Product Attribute System co-located in `src/core/product/` | Implemented |
+| ADR-012 | `ProductRepository.setAttributeValues` as additive repository contract extension | Implemented |
+| ADR-013 | Map Prisma `P2002` to `ConflictError` for product/attribute persistence | Implemented |
 
 ---
 

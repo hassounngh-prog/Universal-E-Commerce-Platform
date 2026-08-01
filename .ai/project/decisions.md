@@ -701,3 +701,114 @@ The pure, dependency-free `Container` registry class stays in `src/config/contai
 Positive: Matches the approved DI specification. Provider selection stays config-driven. Core remains implementation-agnostic. Infrastructure remains unaware of configuration.
 
 Negative: `src/config` is no longer a purely declarative layer; it is now the composition root and must be kept free of business logic.
+
+---
+
+## ADR-011
+
+### Title
+
+Product Attribute System Co-located in `src/core/product/`
+
+### Status
+
+Implemented
+
+### Date
+
+2026-07-31
+
+### Context
+
+ADR-008 adopted the Entity-Attribute-Value (EAV) pattern for product attributes. The attribute system spans `Attribute` definitions and `ProductAttributeValue` rows. A decision was required on where the attribute module lives: a dedicated top-level Core module or co-located with the product domain.
+
+### Decision
+
+Place the attribute interfaces and types in `src/core/product/` (`attribute-repository.interface.ts`, `attribute-types.ts`). The Prisma implementation lives in `src/infrastructure/database/attribute-repository.ts`. No separate `src/core/attribute/` module.
+
+### Alternatives
+
+- **Separate `src/core/attribute/` module** — rejected: attributes currently exist only as product attributes; a dedicated module would be an empty abstraction layer.
+
+### Consequences
+
+Positive: Attribute contracts are co-located with the domain that consumes them; no premature abstraction; consistent with the product-domain directory ownership in `project/architecture.md`.
+Negative: If attributes are later generalized to other entities (collections, categories), they must be extracted into a shared module.
+
+---
+
+## ADR-012
+
+### Title
+
+`ProductRepository.setAttributeValues` as an Additive Repository Contract Extension
+
+### Status
+
+Implemented
+
+### Date
+
+2026-07-31
+
+### Context
+
+`ProductService` must persist dynamic attribute values (EAV) for a product. The existing `ProductRepository` contract covered product CRUD, list, delete, and stock adjustment. Attribute-value persistence was not yet part of the contract.
+
+### Decision
+
+Extend the `ProductRepository` interface with an additive method:
+
+```ts
+setAttributeValues(
+  tenantId: string | null,
+  id: string,
+  values: ProductAttributeValueInput[],
+): Promise<Product>;
+```
+
+The method is additive only — all existing repository methods remain unchanged, so no downstream consumer breaks. The Prisma implementation lives in `src/infrastructure/database/product-repository.ts`.
+
+### Alternatives
+
+- **Fold attribute persistence into `create`/`update`** — rejected: would couple the write path of every product mutation to the attribute write path and complicate the transaction surface.
+- **Separate `AttributeValueRepository`** — rejected: over-abstraction for a write that belongs to the product aggregate.
+
+### Consequences
+
+Positive: Additive, non-breaking contract extension; attribute writes are explicit and testable; single entry point for product aggregate persistence.
+Negative: `ProductRepository` now also owns attribute-value writes; acceptable given the product aggregate boundary.
+
+---
+
+## ADR-013
+
+### Title
+
+Map Prisma `P2002` to `ConflictError` for Product/Attribute Persistence Conflicts
+
+### Status
+
+Implemented
+
+### Date
+
+2026-07-31
+
+### Context
+
+Product and attribute persistence can hit unique-constraint violations on `slug` or `sku`. Prisma surfaces these as `Prisma.PrismaClientKnownRequestError` with code `P2002`. Propagating the raw Prisma error would leak infrastructure details into the Core layer.
+
+### Decision
+
+In `src/infrastructure/database/product-repository.ts`, detect Prisma unique-constraint errors via an `isPrismaUniqueConstraintError` guard (checks `code === "P2002"`) and throw `ConflictError` with a domain message ("Product with the same slug or sku already exists"). `ConflictError` is defined in `src/shared/errors/platform-error.ts` with code `"conflict"`.
+
+### Alternatives
+
+- **Propagate the raw Prisma error** — rejected: leaks infrastructure error types into Core.
+- **Reuse `NotFoundError`/generic `PlatformError`** — rejected: loses the semantic distinction required to signal a uniqueness conflict.
+
+### Consequences
+
+Positive: Core and callers receive a typed, stable `ConflictError`; consistent with the platform error taxonomy; infrastructure details stay in the Infrastructure layer.
+Negative: The mapping must be applied per repository; `attribute-repository.ts` currently performs no writes, so the mapping lives in the product repository write path today.

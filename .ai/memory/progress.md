@@ -23,7 +23,13 @@ Foundation Phase Complete
 Database Schema & Auth Complete
     │
     ▼
-Universal Platform Transformation ← current
+Universal Platform Transformation
+    │
+    ▼
+Core Interfaces & Phase 0 Foundation (FROZEN)
+    │
+    ▼
+Phase 3 Core Engine (3.1-3.5 complete) ← current
     │
     ▼
 Provider Interface Implementation (next)
@@ -84,6 +90,36 @@ Description:
 Result:
 Architecture is now business-agnostic. Platform can power any e-commerce domain through configuration.
 
+## Phase 0 Foundation & Core Interfaces (FROZEN)
+
+Date: 2026-07-31
+
+Description:
+- Created layer directory structure (src/core, src/infrastructure, src/config, src/plugins, src/shared)
+- Defined six provider interfaces (Payment, Storage, Search, Shipping, Tax, NotificationChannel) + plugin contracts + extension registry
+- Added `src/config/platform.config.ts`, `src/config/tenant.config.ts`, shared base files, security headers, JWT TTL 7d, ESLint layer zones
+- Scored 100/100 in harness-audit; re-architecture review APP/80
+- Architecture FROZEN — no new architecture documents unless implementation reveals a concrete design flaw
+
+Result:
+Phase 0 complete. Core layer purity enforced via ESLint `import/no-restricted-paths` + manual rg guard.
+
+## Phase 3 Core Engine — Tasks 3.1–3.5 Complete
+
+Date: 2026-07-31
+
+Description:
+- 3.1 ProductService: CRUD + EAV attributes + categories (d0cf191, 665b3b9)
+- 3.2 CartService: guest/authenticated carts + merge + pricing (cdd491e)
+- 3.3 OrderService: creation, payment, fulfillment, tax, shipping (79dc4a3 = HEAD) — AAB **APPROVED** (0 blockers; 2 accepted tech debt + 2 cosmetic, see known-issues.md)
+- 3.4 PricingEngine: pricing, coupons, tax (f54ce8a)
+- 3.5 PaymentService: thin PaymentProvider orchestration in `src/core/payment/` (uncommitted) — interface + `DefaultPaymentService` + 24 tests; container wired (`KEYS.paymentService`); OrderService untouched
+- Governance closure ADR-011/012/013 recorded in decisions.md (Status: Implemented) and decisions-history.md
+- Phase 3 reconciliation report: `.ai/reviews/universal-platform-roadmap.md`
+
+Result:
+Core service suites green (order/pricing 45/45 at 3.4; full suite 239 tests / 21 files after 3.5). Next: 3.6 ShippingService.
+
 ---
 
 # Release History
@@ -117,6 +153,14 @@ Architecture is now business-agnostic. Platform can power any e-commerce domain 
 | Multi-Tenancy ADR       | ✅        | ADR-009 in `.ai/project/decisions.md`       |
 | Known Issues            | ✅        | `.ai/memory/known-issues.md`               |
 | Decisions History       | ✅        | `.ai/memory/decisions-history.md`          |
+| Core Interfaces         | ✅        | 6 provider interfaces frozen              |
+| Phase 0 Foundation      | ✅        | Layers, configs, security, ESLint zones   |
+| ProductService          | ✅        | 3.1 CRUD + EAV + categories               |
+| CartService             | ✅        | 3.2 Guest/auth carts + merge + pricing    |
+| OrderService            | ✅        | 3.3 AAB APPROVED (accepted debt noted)    |
+| PricingEngine           | ✅        | 3.4 Pricing + coupons + tax               |
+| PaymentService          | ✅        | 3.5 Thin PaymentProvider orchestration    |
+| ShippingService         | ⏳        | 3.6 Next                                 |
 
 ---
 
@@ -159,3 +203,9 @@ Impact: Architecture scored 82/100 — APPROVED WITH CHANGES. 20 verification cr
 Change: Addressed all 5 review conditions. Designed Plugin System (`.ai/specs/plugin-system.md`), Dependency Injection (`.ai/project/dependency-injection.md`), and Multi-Tenancy ADR-009 (`.ai/project/decisions.md`). Populated `memory/known-issues.md` with 24 audit findings. Created `memory/decisions-history.md`.
 
 Impact: All P1 review conditions met. Architecture is now ready for Phase 0 structural implementation.
+
+### 2026-07-31 (Core Engine Phase 3)
+
+Change: Implemented Core services 3.1–3.5 (Product, Cart, Order, Pricing, Payment). OrderService passed AAB review. PaymentService added as thin PaymentProvider orchestration with container wiring. Provider implementations (Stripe/Search/Tax) in progress but uncommitted.
+
+Impact: Commerce core is now functional: product/EAV, cart merge, order lifecycle, pricing, and payment orchestration all unit-tested. OrderService approved with accepted technical debt. Governance ADRs 011–013 closed. Next: 3.6 ShippingService.
