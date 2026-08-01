@@ -106,13 +106,12 @@ describe("PostgresSearchProvider", () => {
     expect(mocks.mockQueryRaw).not.toHaveBeenCalled();
   });
 
-  it("ensures the generated tsvector column via raw SQL on createIndex", async () => {
-    mocks.mockExecuteRaw.mockResolvedValue([]);
+  it("does not run runtime schema mutations when creating an index", async () => {
     const provider = new PostgresSearchProvider(settings);
 
     await provider.createIndex("products");
 
-    expect(mocks.mockExecuteRaw).toHaveBeenCalledTimes(2);
+    expect(mocks.mockExecuteRaw).not.toHaveBeenCalled();
   });
 
   it("clears documents of an index when deleting it", async () => {

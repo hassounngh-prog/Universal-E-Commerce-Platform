@@ -87,8 +87,10 @@ export class PostgresTaxProvider implements TaxProvider {
           : {}),
         isCompound: false,
         appliesToShipping: false,
-        startsAt: { lte: now() },
-        endsAt: { gte: now() },
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now() } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: now() } }] },
+        ],
       },
       orderBy: [{ postalCode: "asc" }, { region: "asc" }, { priority: "desc" }],
     });
@@ -112,8 +114,10 @@ export class PostgresTaxProvider implements TaxProvider {
         ...(request.toAddress.region ? { region: request.toAddress.region } : {}),
         isCompound: true,
         appliesToShipping: false,
-        startsAt: { lte: now() },
-        endsAt: { gte: now() },
+        AND: [
+          { OR: [{ startsAt: null }, { startsAt: { lte: now() } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: now() } }] },
+        ],
       },
       orderBy: [{ postalCode: "asc" }, { region: "asc" }, { priority: "desc" }],
     });

@@ -104,7 +104,24 @@ export class StripeProvider implements PaymentProvider {
   }
 
   async handleWebhook(payload: PaymentWebhookPayload): Promise<PaymentWebhookResult> {
-    const raw = payload.raw as { id?: string; type?: string; data?: { object?: unknown } };
+    const webhookSecret = this.settings.webhookSecret;
+
+    let rawEvent: unknown;
+
+    if (webhookSecret) {
+      if (!payload.signature || typeof payload.raw !== "string") {
+        return { success: false, status: null, error: "Invalid webhook signature" };
+      }
+      try {
+        rawEvent = Stripe.webhooks.constructEvent(payload.raw, payload.signature, webhookSecret);
+      } catch {
+        return { success: false, status: null, error: "Invalid webhook signature" };
+      }
+    } else {
+      rawEvent = payload.raw;
+    }
+
+    const raw = rawEvent as { id?: string; type?: string; data?: { object?: unknown } };
     const eventType = payload.eventType ?? raw?.type ?? "";
 
     if (!eventType.startsWith("payment_intent.")) {

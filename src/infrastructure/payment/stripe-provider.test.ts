@@ -3,12 +3,18 @@ import { StripeProvider } from "./stripe-provider";
 import { PaymentStatus } from "@/core/payment/payment-provider.interface";
 import type { PaymentRequest } from "@/core/payment/payment-provider.interface";
 
-const mockCreate = vi.fn();
-const mockCapture = vi.fn();
-const mockRefundCreate = vi.fn();
+const { mockCreate, mockCapture, mockRefundCreate, mockConstructEvent } = vi.hoisted(() => ({
+  mockCreate: vi.fn(),
+  mockCapture: vi.fn(),
+  mockRefundCreate: vi.fn(),
+  mockConstructEvent: vi.fn(),
+}));
 
 vi.mock("stripe", () => {
   class MockStripe {
+    static webhooks = {
+      constructEvent: mockConstructEvent,
+    };
     paymentIntents = {
       create: mockCreate,
       capture: mockCapture,
@@ -33,6 +39,7 @@ describe("StripeProvider", () => {
     mockCreate.mockReset();
     mockCapture.mockReset();
     mockRefundCreate.mockReset();
+    mockConstructEvent.mockReset();
   });
 
   it("implements the PaymentProvider contract", () => {
@@ -103,6 +110,60 @@ describe("StripeProvider", () => {
     expect(result.success).toBe(true);
     expect(result.paymentId).toBe("pi_123");
     expect(result.status).toBe(PaymentStatus.Captured);
+  });
+
+  it("verifies the webhook signature when a webhook secret is configured", async () => {
+    mockConstructEvent.mockReturnValue({
+      type: "payment_intent.succeeded",
+      data: { object: { id: "pi_123", status: "succeeded" } },
+    });
+    const provider = new StripeProvider({ enabled: true, secretKey: "sk_test_123", currency: "usd", webhookSecret: "whsec_test" });
+
+    const result = await provider.handleWebhook({
+      provider: "stripe",
+      eventType: "payment_intent.succeeded",
+      signature: "t=1700000000,v1=abcdef",
+      raw: '{"id":"evt_1","type":"payment_intent.succeeded","data":{"object":{"id":"pi_123","status":"succeeded"}}}',
+    });
+
+    expect(mockConstructEvent).toHaveBeenCalledWith(
+      '{"id":"evt_1","type":"payment_intent.succeeded","data":{"object":{"id":"pi_123","status":"succeeded"}}}',
+      "t=1700000000,v1=abcdef",
+      "whsec_test",
+    );
+    expect(result.success).toBe(true);
+    expect(result.paymentId).toBe("pi_123");
+    expect(result.status).toBe(PaymentStatus.Captured);
+  });
+
+  it("rejects webhooks with an invalid signature", async () => {
+    mockConstructEvent.mockImplementation(() => {
+      throw new Error("Signature verification failed");
+    });
+    const provider = new StripeProvider({ enabled: true, secretKey: "sk_test_123", currency: "usd", webhookSecret: "whsec_test" });
+
+    const result = await provider.handleWebhook({
+      provider: "stripe",
+      eventType: "payment_intent.succeeded",
+      signature: "t=1700000000,v1=bad",
+      raw: '{"id":"evt_1","type":"payment_intent.succeeded"}',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Invalid webhook signature");
+  });
+
+  it("rejects webhooks missing a signature when a secret is configured", async () => {
+    const provider = new StripeProvider({ enabled: true, secretKey: "sk_test_123", currency: "usd", webhookSecret: "whsec_test" });
+
+    const result = await provider.handleWebhook({
+      provider: "stripe",
+      eventType: "payment_intent.succeeded",
+      raw: { id: "evt_1", type: "payment_intent.succeeded", data: { object: { id: "pi_123", status: "succeeded" } } },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Invalid webhook signature");
   });
 
   it("throws when the provider is disabled", async () => {

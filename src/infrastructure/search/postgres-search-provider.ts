@@ -115,19 +115,8 @@ export class PostgresSearchProvider implements SearchProvider {
   }
 
   async createIndex(index: string, mapping?: Record<string, unknown>): Promise<void> {
-    const config = mapping as { language?: string } | undefined;
-    const language = config?.language ?? "english";
-
-    await prisma.$executeRaw`
-      ALTER TABLE search_documents
-        ADD COLUMN IF NOT EXISTS searchable tsvector
-        GENERATED ALWAYS AS (to_tsvector(${language}::regconfig, fields::text)) STORED
-    `;
-    await prisma.$executeRaw`
-      CREATE INDEX IF NOT EXISTS search_documents_searchable_idx
-        ON search_documents USING GIN (searchable)
-    `;
     void index;
+    void mapping;
   }
 
   async deleteIndex(index: string): Promise<void> {

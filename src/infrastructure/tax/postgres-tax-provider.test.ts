@@ -137,4 +137,23 @@ describe("PostgresTaxProvider", () => {
       }),
     );
   });
+
+  it("treats NULL validity bounds as unbounded in rate lookups", async () => {
+    mocks.mockFindCategory.mockResolvedValue({ id: "cat-1", code: "physical" });
+    mocks.mockFindRate.mockResolvedValue(null);
+    const provider = new PostgresTaxProvider(settings);
+
+    await provider.calculate(request);
+
+    expect(mocks.mockFindRate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            { OR: [{ startsAt: null }, { startsAt: { lte: expect.any(Date) } }] },
+            { OR: [{ endsAt: null }, { endsAt: { gte: expect.any(Date) } }] },
+          ],
+        }),
+      }),
+    );
+  });
 });
